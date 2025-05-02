@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kursova2/GoodsScreen.dart';
 import 'package:kursova2/WarehouseStockScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'rpc_service.dart'; // твій RPC сервіс
@@ -310,6 +311,30 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
           createWarehouseDialog();
         },
         child: const Icon(Icons.add),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0, // Встановіть індекс активної сторінки
+        onTap: (index) {
+          if (index == 0) {
+            // Залишаємося на цій сторінці
+          } else if (index == 1) {
+            // Перехід на сторінку з товарами
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const GoodsScreen()),
+            );
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.warehouse),
+            label: 'Склади',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.inventory),
+            label: 'Товари',
+          ),
+        ],
       ),
     );
   }
