@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kursova2/constants.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'rpc_service.dart';
-import 'warehouses_screen.dart';
+import 'package:kursova2/Services/auth_service.dart';
+import 'package:kursova2/Screens/warehouses_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,59 +10,25 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final rpc = RpcService(url: apiUrl); // Використовуємо константу
-
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  Future<void> login() async {
+  void _handleLogin() {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
-    final response = await rpc.sendRequest(
-      method: 'User->login',
-      params: {
-        'username': username,
-        'password': password,
-      },
-      sessionKey: 'login',
-      id: 1,
-    );
-
-    if (response != null && response['result'] != null) {
-      final sessionKey = response['result']['response'];
-      print('Login success: $sessionKey');
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('session_key', sessionKey);
-
-      // Перехід на новий екран
-      if (context.mounted) {
+    login(
+      context,
+      username,
+      password,
+      () {
+        
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const WarehousesScreen()),
         );
-      }
-    } else {
-      print('Login failed: ${response?['error'] ?? 'Unknown error'}');
-
-      // Показати помилку
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Login Failed'),
-            content: Text('${response?['error'] ?? 'Unknown error'}'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-    }
+      },
+    );
   }
 
   @override
@@ -119,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: login,
+                onPressed: _handleLogin,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   shape: RoundedRectangleBorder(

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:kursova2/goods_screen.dart';
-import 'package:kursova2/warehouse_stock_screen.dart';
+import 'package:kursova2/Screens/goods_screen.dart';
+import 'package:kursova2/Screens/warehouse_stock_screen.dart';
 import 'package:kursova2/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'rpc_service.dart'; // твій RPC сервіс
+import '../Services/rpc_service.dart'; 
 
 class WarehousesScreen extends StatefulWidget {
   const WarehousesScreen({super.key});
@@ -13,7 +13,7 @@ class WarehousesScreen extends StatefulWidget {
 }
 
 class _WarehousesScreenState extends State<WarehousesScreen> {
-  final rpc = RpcService(url: apiUrl); // Використовуємо константу
+  final rpc = RpcService(url: apiUrl); 
   List<dynamic> warehouses = [];
   bool isLoading = true;
 
@@ -73,7 +73,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
     final response = await rpc.sendRequest(
       method: 'Warehouse->delete_warehouse',
       params: {
-        'wh_id': warehouseId, // Updated to match backend
+        'wh_id': warehouseId, 
         if (move_stock != null) 'move_stock': move_stock,
       },
       sessionKey: sessionKey,
@@ -84,7 +84,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Склад успішно видалено')),
       );
-      loadWarehouses(); // Оновлюємо список
+      loadWarehouses(); 
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Помилка видалення: ${response?['error'] ?? 'невідома помилка'}')),
@@ -167,7 +167,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                 return;
               }
 
-              Navigator.of(context).pop(); // Close the dialog
+              Navigator.of(context).pop(); 
 
               final prefs = await SharedPreferences.getInstance();
               final sessionKey = prefs.getString('session_key');
@@ -200,7 +200,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Склад успішно оновлено')),
                 );
-                loadWarehouses(); // Reload the list of warehouses
+                loadWarehouses(); 
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Помилка оновлення: ${response?['error'] ?? 'невідома помилка'}')),
@@ -319,12 +319,12 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0, // Встановіть індекс активної сторінки
+        currentIndex: 0, 
         onTap: (index) {
           if (index == 0) {
-            // Залишаємося на цій сторінці
+            
           } else if (index == 1) {
-            // Перехід на сторінку з товарами
+           
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const GoodsScreen()),
@@ -389,7 +389,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                 return;
               }
 
-              Navigator.of(context).pop(); // Close the dialog
+              Navigator.of(context).pop(); 
 
               final prefs = await SharedPreferences.getInstance();
               final sessionKey = prefs.getString('session_key');
@@ -414,7 +414,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Склад успішно створено')),
                 );
-                loadWarehouses(); // Reload the list of warehouses
+                loadWarehouses(); 
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Помилка створення: ${response?['error'] ?? 'невідома помилка'}')),
@@ -461,7 +461,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                 return;
               }
 
-              Navigator.of(context).pop(); // Close the dialog
+              Navigator.of(context).pop(); 
 
               final prefs = await SharedPreferences.getInstance();
               final sessionKey = prefs.getString('session_key');
@@ -486,7 +486,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Товари успішно переміщено')),
                 );
-                loadWarehouses(); // Reload the list of warehouses
+                loadWarehouses(); 
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Помилка переміщення: ${response?['error'] ?? 'невідома помилка'}')),

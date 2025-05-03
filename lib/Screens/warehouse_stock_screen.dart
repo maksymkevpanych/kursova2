@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kursova2/goods_screen.dart';
-import 'package:kursova2/constants.dart';
-import 'package:kursova2/warehouses_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'rpc_service.dart'; // твій RPC сервіс
+import 'package:kursova2/Services/warehouse_stock_service.dart';
+import 'package:kursova2/Screens/goods_screen.dart';
+import 'package:kursova2/Screens/warehouses_screen.dart';
+
 
 class WarehouseStockScreen extends StatefulWidget {
   final int warehouseId;
@@ -16,128 +15,35 @@ class WarehouseStockScreen extends StatefulWidget {
 }
 
 class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
-  final rpc = RpcService(url: apiUrl); // Використовуємо константу
   bool isLoading = true;
   List<dynamic> stockItems = [];
 
   @override
   void initState() {
     super.initState();
-    loadWarehouseStock();
+    _loadWarehouseStock();
   }
 
-  Future<void> loadWarehouseStock() async {
+  Future<void> _loadWarehouseStock() async {
     setState(() {
       isLoading = true;
     });
 
-    final prefs = await SharedPreferences.getInstance();
-    final sessionKey = prefs.getString('session_key');
-
-    if (sessionKey == null) {
-      print('No session key found.');
+    try {
+      final items = await fetchWarehouseStock(widget.warehouseId);
       setState(() {
+        stockItems = items;
         isLoading = false;
       });
-      return;
-    }
-
-    final response = await rpc.sendRequest(
-      method: 'Stock->get_warehouse_stock',
-      params: {'wh_id': widget.warehouseId},
-      sessionKey: sessionKey,
-      id: 7, // унікальний ID запиту
-    );
-
-    if (response != null && response['result'] != null) {
-      setState(() {
-        stockItems = response['result'] ?? [];
-        
-        isLoading = false;
-      });
-    } else {
-      print('Failed to load warehouse stock: ${response?['error'] ?? 'Unknown error'}');
+    } catch (e) {
+      print(e);
       setState(() {
         isLoading = false;
       });
     }
   }
 
-  void showWithdrawDialog(int itemId) {
-    final qtyController = TextEditingController();
-    final noteController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Списати товар'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: qtyController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Кількість'),
-            ),
-            TextField(
-              controller: noteController,
-              decoration: const InputDecoration(labelText: 'Примітка'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Скасувати'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final qty = int.tryParse(qtyController.text.trim());
-              final note = noteController.text.trim();
-
-              if (qty == null || qty <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Введіть коректну кількість')),
-                );
-                return;
-              }
-
-              Navigator.of(context).pop(); // Закрити діалог
-
-              final prefs = await SharedPreferences.getInstance();
-              final sessionKey = prefs.getString('session_key');
-
-              final response = await rpc.sendRequest(
-                method: 'Stock->withdraw_item_from_wh',
-                params: {
-                  'wh_id': widget.warehouseId,
-                  'item_id': itemId,
-                  'qty': qty,
-                  'note': note,
-                },
-                sessionKey: sessionKey ?? '',
-                id: 10,
-              );
-
-              if (response != null && response['result'] == true) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Товар успішно списано')),
-                );
-                loadWarehouseStock(); // Оновити список товарів
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Помилка: ${response?['error'] ?? 'невідома помилка'}')),
-                );
-              }
-            },
-            child: const Text('Підтвердити'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void showReceiveDialog(int itemId) {
+  void _showReceiveDialog(int itemId) {
     final qtyController = TextEditingController();
     final noteController = TextEditingController();
 
@@ -165,7 +71,7 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
             child: const Text('Скасувати'),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               final qty = int.tryParse(qtyController.text.trim());
               final note = noteController.text.trim();
 
@@ -176,32 +82,59 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
                 return;
               }
 
-              Navigator.of(context).pop(); // Закрити діалог
+              Navigator.of(context).pop();
 
-              final prefs = await SharedPreferences.getInstance();
-              final sessionKey = prefs.getString('session_key');
-              final response = await rpc.sendRequest(
-                method: 'Stock->receive_item_to_wh',
-                params: {
-                  'wh_id': widget.warehouseId,
-                  'item_id': itemId,
-                  'qty': qty,
-                  'note': note,
-                },
-                sessionKey: sessionKey ?? '',
-                id: 9,
-              );
+              receiveItem(context, widget.warehouseId, itemId, qty, note, _loadWarehouseStock);
+            },
+            child: const Text('Підтвердити'),
+          ),
+        ],
+      ),
+    );
+  }
 
-              if (response != null && response['result'] == true) {
+  void _showWithdrawDialog(int itemId) {
+    final qtyController = TextEditingController();
+    final noteController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Списати товар'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: qtyController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Кількість'),
+            ),
+            TextField(
+              controller: noteController,
+              decoration: const InputDecoration(labelText: 'Примітка'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Скасувати'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final qty = int.tryParse(qtyController.text.trim());
+              final note = noteController.text.trim();
+
+              if (qty == null || qty <= 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Товар успішно отримано')),
+                  const SnackBar(content: Text('Введіть коректну кількість')),
                 );
-                loadWarehouseStock(); // Оновити список товарів
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Помилка: ${response?['error'] ?? 'невідома помилка'}')),
-                );
+                return;
               }
+
+              Navigator.of(context).pop();
+
+              withdrawItem(context, widget.warehouseId, itemId, qty, note, _loadWarehouseStock);
             },
             child: const Text('Підтвердити'),
           ),
@@ -257,9 +190,9 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
                                 onSelected: (value) {
                                   final itemId = int.tryParse(item['item_id'] ?? '0') ?? 0;
                                   if (value == 'receive') {
-                                    showReceiveDialog(itemId);
+                                    _showReceiveDialog(itemId);
                                   } else if (value == 'withdraw') {
-                                    showWithdrawDialog(itemId);
+                                    _showWithdrawDialog(itemId);
                                   }
                                 },
                                 itemBuilder: (context) => [
@@ -282,16 +215,14 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
                   },
                 ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0, // Встановіть індекс активної сторінки
+        currentIndex: 0,
         onTap: (index) {
           if (index == 0) {
-            // Перехід на сторінку зі складами
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const WarehousesScreen()),
             );
           } else if (index == 1) {
-            // Перехід на сторінку з товарами
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const GoodsScreen()),
