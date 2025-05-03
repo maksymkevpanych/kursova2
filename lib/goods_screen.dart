@@ -98,12 +98,13 @@ class _GoodsScreenState extends State<GoodsScreen> {
                               alignment: Alignment.centerRight,
                               child: PopupMenuButton<String>(
                                 onSelected: (value) {
+                                  final itemId = int.tryParse(item['id'].toString()) ?? 0; // Конвертація у int
                                   if (value == 'edit') {
                                     showEditItemDialog(item);
                                   } else if (value == 'delete') {
-                                    confirmDeleteItem(item['id']);
+                                    confirmDeleteItem(itemId);
                                   } else if (value == 'receive') {
-                                    showReceiveItemDialog(item['id']);
+                                    showReceiveItemDialog(itemId);
                                   }
                                 },
                                 itemBuilder: (context) => [
@@ -341,7 +342,7 @@ class _GoodsScreenState extends State<GoodsScreen> {
               final response = await rpc.sendRequest(
                 method: 'Goods->delete_item',
                 params: {
-                  'item_id': itemId,
+                  'item_id': itemId, // itemId вже є int
                 },
                 sessionKey: sessionKey ?? '',
                 id: 4,
@@ -417,10 +418,10 @@ class _GoodsScreenState extends State<GoodsScreen> {
               final sessionKey = prefs.getString('session_key');
 
               final response = await rpc.sendRequest(
-                method: 'Goods->receive_item_to_wh',
+                method: 'Stock->receive_item_to_wh',
                 params: {
                   'wh_id': warehouseId,
-                  'item_id': itemId,
+                  'item_id': itemId, // itemId вже є int
                   'qty': qty,
                   'note': note,
                 },
