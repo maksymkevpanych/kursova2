@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kursova2/GoodsScreen.dart';
-import 'package:kursova2/WarehouseStockScreen.dart';
+import 'package:kursova2/goods_screen.dart';
+import 'package:kursova2/warehouse_stock_screen.dart';
+import 'package:kursova2/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'rpc_service.dart'; // твій RPC сервіс
 
@@ -12,7 +13,7 @@ class WarehousesScreen extends StatefulWidget {
 }
 
 class _WarehousesScreenState extends State<WarehousesScreen> {
-  final rpc = RpcService(url: 'http://localhost/kursach/index.php');
+  final rpc = RpcService(url: apiUrl); // Використовуємо константу
   List<dynamic> warehouses = [];
   bool isLoading = true;
 
@@ -252,28 +253,19 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                           style: theme.textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () {
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: PopupMenuButton<String>(
+                            onSelected: (value) {
+                              if (value == 'edit') {
                                 editWarehouseDialog(warehouse);
-                              },
-                              child: const Text('Редагувати'),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                              onPressed: () {
+                              } else if (value == 'delete') {
                                 final warehouseId = parseInt(warehouse['id']);
                                 final moveStock = parseInt(warehouse['move_stock']);
                                 if (warehouseId != null) {
                                   confirmDelete(warehouseId, moveStock);
                                 }
-                              },
-                              child: const Text('Видалити'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
+                              } else if (value == 'view') {
                                 final warehouseId = parseInt(warehouse['id']);
                                 if (warehouseId != null) {
                                   Navigator.push(
@@ -286,19 +278,33 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                                     ),
                                   );
                                 }
-                              },
-                              child: const Text('Переглянути товари'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
+                              } else if (value == 'manage') {
                                 final warehouseId = parseInt(warehouse['id']);
                                 if (warehouseId != null) {
                                   manageWarehouseStock(warehouseId);
                                 }
-                              },
-                              child: const Text('Керувати товарами'),
-                            ),
-                          ],
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Редагувати'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Видалити'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'view',
+                                child: Text('Переглянути товари'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'manage',
+                                child: Text('Керувати товарами'),
+                              ),
+                            ],
+                            icon: const Icon(Icons.more_vert),
+                          ),
                         ),
                       ],
                     ),

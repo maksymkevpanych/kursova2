@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kursova2/GoodsScreen.dart';
+import 'package:kursova2/goods_screen.dart';
+import 'package:kursova2/constants.dart';
 import 'package:kursova2/warehouses_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'rpc_service.dart'; // твій RPC сервіс
@@ -15,7 +16,7 @@ class WarehouseStockScreen extends StatefulWidget {
 }
 
 class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
-  final rpc = RpcService(url: 'http://localhost/kursach/index.php');
+  final rpc = RpcService(url: apiUrl); // Використовуємо константу
   bool isLoading = true;
   List<dynamic> stockItems = [];
 
@@ -250,25 +251,29 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
                               style: theme.textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () {
-                                    final itemId = int.tryParse(item['item_id'] ?? '0') ?? 0;
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  final itemId = int.tryParse(item['item_id'] ?? '0') ?? 0;
+                                  if (value == 'receive') {
                                     showReceiveDialog(itemId);
-                                  },
-                                  child: const Text('Отримати'),
-                                ),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                  onPressed: () {
-                                    final itemId = int.tryParse(item['item_id'] ?? '0') ?? 0;
+                                  } else if (value == 'withdraw') {
                                     showWithdrawDialog(itemId);
-                                  },
-                                  child: const Text('Списати'),
-                                ),
-                              ],
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'receive',
+                                    child: Text('Отримати'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'withdraw',
+                                    child: Text('Списати'),
+                                  ),
+                                ],
+                                icon: const Icon(Icons.more_vert),
+                              ),
                             ),
                           ],
                         ),

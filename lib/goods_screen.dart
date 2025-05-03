@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kursova2/warehouses_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'rpc_service.dart'; // Ваш RPC сервіс
+import 'constants.dart'; // Імпортуємо файл з константами
 
 class GoodsScreen extends StatefulWidget {
   const GoodsScreen({super.key});
@@ -11,7 +12,7 @@ class GoodsScreen extends StatefulWidget {
 }
 
 class _GoodsScreenState extends State<GoodsScreen> {
-  final rpc = RpcService(url: 'http://localhost/kursach/index.php');
+  final rpc = RpcService(url: apiUrl); // Використовуємо константу
   bool isLoading = true;
   List<dynamic> goods = [];
 
@@ -43,7 +44,7 @@ class _GoodsScreenState extends State<GoodsScreen> {
         'search': '',
         'wh_id': null,
       },
-      sessionKey: sessionKey ?? '',
+      sessionKey: sessionKey,
       id: 1,
     );
 
@@ -93,29 +94,34 @@ class _GoodsScreenState extends State<GoodsScreen> {
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () {
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  if (value == 'edit') {
                                     showEditItemDialog(item);
-                                  },
-                                  child: const Text('Редагувати'),
-                                ),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                  onPressed: () {
+                                  } else if (value == 'delete') {
                                     confirmDeleteItem(item['id']);
-                                  },
-                                  child: const Text('Видалити'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
+                                  } else if (value == 'receive') {
                                     showReceiveItemDialog(item['id']);
-                                  },
-                                  child: const Text('Отримати на склад'),
-                                ),
-                              ],
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text('Редагувати'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text('Видалити'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'receive',
+                                    child: Text('Отримати на склад'),
+                                  ),
+                                ],
+                                icon: const Icon(Icons.more_vert),
+                              ),
                             ),
                           ],
                         ),
