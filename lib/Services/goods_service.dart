@@ -3,8 +3,7 @@ import 'package:kursova2/constants.dart';
 import 'package:kursova2/Services/rpc_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
-final rpc = RpcService(url: apiUrl); 
+final rpc = RpcService(url: apiUrl);
 
 Future<List<dynamic>> loadGoods() async {
   final prefs = await SharedPreferences.getInstance();
@@ -87,6 +86,74 @@ Future<void> receiveItemToWarehouse(
   } else {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Помилка: ${response?['error'] ?? 'невідома помилка'}')),
+    );
+  }
+}
+
+Future<void> createItem(
+  BuildContext context,
+  String name,
+  String description,
+  String imgUrl,
+  Function onSuccess,
+) async {
+  final prefs = await SharedPreferences.getInstance();
+  final sessionKey = prefs.getString('session_key');
+
+  final response = await rpc.sendRequest(
+    method: 'Goods->create_item',
+    params: {
+      'name': name,
+      'description': description,
+      'img_url': imgUrl,
+    },
+    sessionKey: sessionKey ?? '',
+    id: 6,
+  );
+
+  if (response != null && response['result'] == true) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Товар успішно створено')),
+    );
+    onSuccess();
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Помилка створення: ${response?['error'] ?? 'невідома помилка'}')),
+    );
+  }
+}
+
+Future<void> editItem(
+  BuildContext context,
+  int itemId,
+  String name,
+  String description,
+  String imgUrl,
+  Function onSuccess,
+) async {
+  final prefs = await SharedPreferences.getInstance();
+  final sessionKey = prefs.getString('session_key');
+
+  final response = await rpc.sendRequest(
+    method: 'Goods->edit_item',
+    params: {
+      'item_id': itemId,
+      'name': name,
+      'description': description,
+      'img_url': imgUrl,
+    },
+    sessionKey: sessionKey ?? '',
+    id: 7,
+  );
+
+  if (response != null && response['result'] == true) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Товар успішно оновлено')),
+    );
+    onSuccess();
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Помилка оновлення: ${response?['error'] ?? 'невідома помилка'}')),
     );
   }
 }

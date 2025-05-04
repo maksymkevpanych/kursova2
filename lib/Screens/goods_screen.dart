@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kursova2/Services/goods_service.dart';
-import 'package:kursova2/Screens/warehouses_screen.dart'; // Імпортуємо функції
+import 'package:kursova2/Screens/warehouses_screen.dart'; 
 
 class GoodsScreen extends StatefulWidget {
   const GoodsScreen({super.key});
@@ -36,6 +36,119 @@ class _GoodsScreenState extends State<GoodsScreen> {
         isLoading = false;
       });
     }
+  }
+
+  void _showCreateItemDialog() {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final imgUrlController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Створити товар'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Назва'),
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Опис'),
+            ),
+            TextField(
+              controller: imgUrlController,
+              decoration: const InputDecoration(labelText: 'URL зображення'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Скасувати'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              final description = descriptionController.text.trim();
+              final imgUrl = imgUrlController.text.trim();
+
+              if (name.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Назва не може бути порожньою')),
+                );
+                return;
+              }
+
+              Navigator.of(context).pop();
+
+              await createItem(context, name, description, imgUrl, _loadGoods);
+            },
+            child: const Text('Створити'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditItemDialog(Map<String, dynamic> item) {
+    final nameController = TextEditingController(text: item['name']);
+    final descriptionController = TextEditingController(text: item['description']);
+    final imgUrlController = TextEditingController(text: item['img_url']);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Редагувати товар'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Назва'),
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Опис'),
+            ),
+            TextField(
+              controller: imgUrlController,
+              decoration: const InputDecoration(labelText: 'URL зображення'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Скасувати'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              final description = descriptionController.text.trim();
+              final imgUrl = imgUrlController.text.trim();
+
+              if (name.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Назва не може бути порожньою')),
+                );
+                return;
+              }
+
+              Navigator.of(context).pop();
+
+              // Конвертація item['id'] у int
+              final itemId = int.tryParse(item['id'].toString()) ?? 0;
+
+              await editItem(context, itemId, name, description, imgUrl, _loadGoods);
+            },
+            child: const Text('Зберегти'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -80,9 +193,15 @@ class _GoodsScreenState extends State<GoodsScreen> {
                                     deleteItem(context, itemId, _loadGoods);
                                   } else if (value == 'receive') {
                                     _showReceiveItemDialog(itemId);
+                                  } else if (value == 'edit') {
+                                    _showEditItemDialog(item);
                                   }
                                 },
                                 itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text('Редагувати'),
+                                  ),
                                   const PopupMenuItem(
                                     value: 'delete',
                                     child: Text('Видалити'),
@@ -102,9 +221,7 @@ class _GoodsScreenState extends State<GoodsScreen> {
                   },
                 ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Виклик діалогу створення товару
-        },
+        onPressed: _showCreateItemDialog,
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomNavigationBar(
