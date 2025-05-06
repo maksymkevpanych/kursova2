@@ -113,6 +113,7 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
               controller: noteController,
               decoration: const InputDecoration(labelText: 'Примітка'),
             ),
+            
           ],
         ),
         actions: [
@@ -182,6 +183,17 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
                             Text(
                               'Опис: ${item['description'] ?? 'Не вказано'}',
                               style: theme.textTheme.bodyMedium,
+                            ),
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.1, // 10% ширини екрана
+                              height: MediaQuery.of(context).size.height * 0.1, // 10% висоти екрана
+                              child: Image.network(
+                                item['img_url'] ?? 'https://via.placeholder.com/150', // Резервне зображення
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(Icons.broken_image); // Іконка для помилки
+                                },
+                                fit: BoxFit.cover, // Щоб зображення заповнювало контейнер
+                              ),
                             ),
                             const SizedBox(height: 16),
                             Align(
