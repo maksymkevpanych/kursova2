@@ -24,7 +24,16 @@ Future<List<dynamic>> loadGoods() async {
   );
 
   if (response != null && response['result'] != null) {
-    return response['result'];
+    final result = response['result'];
+
+    // Перевіряємо, чи є результат мапою з ключем 'items'
+    if (result is Map<String, dynamic> && result.containsKey('items')) {
+      return result['items'] as List<dynamic>;
+    } else if (result is List<dynamic>) {
+      return result; // Якщо результат уже список
+    } else {
+      throw Exception('Unexpected response format: $result');
+    }
   } else {
     throw Exception('Failed to load goods: ${response?['error'] ?? 'Unknown error'}');
   }

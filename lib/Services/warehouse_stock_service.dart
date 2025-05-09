@@ -21,7 +21,12 @@ Future<List<dynamic>> fetchWarehouseStock(int warehouseId) async {
   );
 
   if (response != null && response['result'] != null) {
-    return response['result'];
+    final result = response['result'];
+    if (result is List<dynamic>) {
+      return result; // Повертаємо список товарів
+    } else {
+      throw Exception('Unexpected response format: $result');
+    }
   } else {
     throw Exception('Failed to load warehouse stock: ${response?['error'] ?? 'Unknown error'}');
   }

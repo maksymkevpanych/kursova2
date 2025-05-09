@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kursova2/Services/warehouse_stock_service.dart';
 import 'package:kursova2/Screens/goods_screen.dart';
 import 'package:kursova2/Screens/warehouses_screen.dart';
-
+import 'package:kursova2/session_manager.dart'; // Імпортуємо SessionManager
 
 class WarehouseStockScreen extends StatefulWidget {
   final int warehouseId;
@@ -16,12 +16,22 @@ class WarehouseStockScreen extends StatefulWidget {
 
 class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
   bool isLoading = true;
+  bool isAdmin = false; // Додано для перевірки адміністратора
   List<dynamic> stockItems = [];
 
   @override
   void initState() {
     super.initState();
+    _checkAdminStatus();
     _loadWarehouseStock();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final adminStatus = await SessionManager.getIsAdmin();
+    print('Admin status: $adminStatus'); // Додано для перевірки
+    setState(() {
+      isAdmin = adminStatus;
+    });
   }
 
   Future<void> _loadWarehouseStock() async {
@@ -184,30 +194,31 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
                               style: theme.textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 16),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: PopupMenuButton<String>(
-                                onSelected: (value) {
-                                  final itemId = int.tryParse(item['item_id'] ?? '0') ?? 0;
-                                  if (value == 'receive') {
-                                    _showReceiveDialog(itemId);
-                                  } else if (value == 'withdraw') {
-                                    _showWithdrawDialog(itemId);
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(
-                                    value: 'receive',
-                                    child: Text('Отримати'),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'withdraw',
-                                    child: Text('Списати'),
-                                  ),
-                                ],
-                                icon: const Icon(Icons.more_vert),
+                            if (isAdmin) // Перевірка на адміністратора
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: PopupMenuButton<String>(
+                                  onSelected: (value) {
+                                    final itemId = int.tryParse(item['item_id'] ?? '0') ?? 0;
+                                    if (value == 'receive') {
+                                      _showReceiveDialog(itemId);
+                                    } else if (value == 'withdraw') {
+                                      _showWithdrawDialog(itemId);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'receive',
+                                      child: Text('Отримати'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'withdraw',
+                                      child: Text('Списати'),
+                                    ),
+                                  ],
+                                  icon: const Icon(Icons.more_vert),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),

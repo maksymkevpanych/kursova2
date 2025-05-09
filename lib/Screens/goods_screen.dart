@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kursova2/Services/goods_service.dart';
-import 'package:kursova2/Screens/warehouses_screen.dart'; 
+import 'package:kursova2/Screens/warehouses_screen.dart';
+import 'package:kursova2/session_manager.dart'; // Імпортуємо SessionManager
 
 class GoodsScreen extends StatefulWidget {
   const GoodsScreen({super.key});
@@ -11,12 +12,21 @@ class GoodsScreen extends StatefulWidget {
 
 class _GoodsScreenState extends State<GoodsScreen> {
   bool isLoading = true;
+  bool isAdmin = false; // Додано для перевірки адміністратора
   List<dynamic> goods = [];
 
   @override
   void initState() {
     super.initState();
+    _checkAdminStatus();
     _loadGoods();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final adminStatus = await SessionManager.getIsAdmin();
+    setState(() {
+      isAdmin = adminStatus;
+    });
   }
 
   Future<void> _loadGoods() async {
@@ -184,46 +194,49 @@ class _GoodsScreenState extends State<GoodsScreen> {
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 16),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: PopupMenuButton<String>(
-                                onSelected: (value) {
-                                  final itemId = int.tryParse(item['id'].toString()) ?? 0;
-                                  if (value == 'delete') {
-                                    deleteItem(context, itemId, _loadGoods);
-                                  } else if (value == 'receive') {
-                                    _showReceiveItemDialog(itemId);
-                                  } else if (value == 'edit') {
-                                    _showEditItemDialog(item);
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(
-                                    value: 'edit',
-                                    child: Text('Редагувати'),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text('Видалити'),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'receive',
-                                    child: Text('Отримати на склад'),
-                                  ),
-                                ],
-                                icon: const Icon(Icons.more_vert),
+                            if (isAdmin) // Перевірка на адміністратора
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: PopupMenuButton<String>(
+                                  onSelected: (value) {
+                                    final itemId = int.tryParse(item['id'].toString()) ?? 0;
+                                    if (value == 'delete') {
+                                      deleteItem(context, itemId, _loadGoods);
+                                    } else if (value == 'receive') {
+                                      _showReceiveItemDialog(itemId);
+                                    } else if (value == 'edit') {
+                                      _showEditItemDialog(item);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'edit',
+                                      child: Text('Редагувати'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text('Видалити'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'receive',
+                                      child: Text('Отримати на склад'),
+                                    ),
+                                  ],
+                                  icon: const Icon(Icons.more_vert),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
                     );
                   },
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateItemDialog,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton(
+              onPressed: _showCreateItemDialog,
+              child: const Icon(Icons.add),
+            )
+          : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 1,
         onTap: (index) {

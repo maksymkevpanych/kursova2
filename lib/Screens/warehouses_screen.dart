@@ -3,7 +3,8 @@ import 'package:kursova2/Screens/goods_screen.dart';
 import 'package:kursova2/Screens/warehouse_stock_screen.dart';
 import 'package:kursova2/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../Services/rpc_service.dart'; 
+import '../Services/rpc_service.dart';
+import '../session_manager.dart'; // Імпортуємо SessionManager
 
 class WarehousesScreen extends StatefulWidget {
   const WarehousesScreen({super.key});
@@ -13,14 +14,23 @@ class WarehousesScreen extends StatefulWidget {
 }
 
 class _WarehousesScreenState extends State<WarehousesScreen> {
-  final rpc = RpcService(url: apiUrl); 
+  final rpc = RpcService(url: apiUrl);
   List<dynamic> warehouses = [];
   bool isLoading = true;
+  bool isAdmin = false; // Додано для перевірки адміністратора
 
   @override
   void initState() {
     super.initState();
+    _checkAdminStatus();
     loadWarehouses();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final adminStatus = await SessionManager.getIsAdmin();
+    setState(() {
+      isAdmin = adminStatus;
+    });
   }
 
   Future<void> loadWarehouses() async {
@@ -47,10 +57,18 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
     );
 
     if (response != null && response['result'] != null) {
-      setState(() {
-        warehouses = response['result'] ?? [];
-        isLoading = false;
-      });
+      final result = response['result'];
+      if (result is Map<String, dynamic> && result.containsKey('items')) {
+        setState(() {
+          warehouses = result['items'] ?? [];
+          isLoading = false;
+        });
+      } else {
+        print('Unexpected response format: $result');
+        setState(() {
+          isLoading = false;
+        });
+      }
     } else {
       print('Failed to load warehouses: ${response?['error'] ?? 'Unknown error'}');
       setState(() {
@@ -257,15 +275,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                           alignment: Alignment.centerRight,
                           child: PopupMenuButton<String>(
                             onSelected: (value) {
-                              if (value == 'edit') {
-                                editWarehouseDialog(warehouse);
-                              } else if (value == 'delete') {
-                                final warehouseId = parseInt(warehouse['id']);
-                                final moveStock = parseInt(warehouse['move_stock']);
-                                if (warehouseId != null) {
-                                  confirmDelete(warehouseId, moveStock);
-                                }
-                              } else if (value == 'view') {
+                              if (value == 'view') {
                                 final warehouseId = parseInt(warehouse['id']);
                                 if (warehouseId != null) {
                                   Navigator.push(
@@ -278,30 +288,31 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                                     ),
                                   );
                                 }
-                              } else if (value == 'manage') {
+                              } else if (isAdmin && value == 'edit') {
+                                editWarehouseDialog(warehouse);
+                              } else if (isAdmin && value == 'delete') {
                                 final warehouseId = parseInt(warehouse['id']);
+                                final moveStock = parseInt(warehouse['move_stock']);
                                 if (warehouseId != null) {
-                                  manageWarehouseStock(warehouseId);
+                                  confirmDelete(warehouseId, moveStock);
                                 }
                               }
                             },
                             itemBuilder: (context) => [
                               const PopupMenuItem(
-                                value: 'edit',
-                                child: Text('Редагувати'),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Text('Видалити'),
-                              ),
-                              const PopupMenuItem(
                                 value: 'view',
                                 child: Text('Переглянути товари'),
                               ),
-                              const PopupMenuItem(
-                                value: 'manage',
-                                child: Text('Керувати товарами'),
-                              ),
+                              if (isAdmin)
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Text('Редагувати'),
+                                ),
+                              if (isAdmin)
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Видалити'),
+                                ),
                             ],
                             icon: const Icon(Icons.more_vert),
                           ),
@@ -312,12 +323,14 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          createWarehouseDialog();
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton(
+              onPressed: () {
+                createWarehouseDialog();
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0, 
         onTap: (index) {
