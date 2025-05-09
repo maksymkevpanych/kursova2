@@ -193,6 +193,12 @@ class _GoodsScreenState extends State<GoodsScreen> {
                               'Опис: ${item['description'] ?? 'Не вказано'}',
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
+                            Image.network(
+                              item['img_url'] ?? 'https://via.placeholder.com/150',
+                              height: 100,
+                              width: 100,
+                              fit: BoxFit.cover,
+                            ),
                             const SizedBox(height: 16),
                             if (isAdmin) // Перевірка на адміністратора
                               Align(

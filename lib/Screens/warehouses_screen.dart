@@ -270,6 +270,12 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
                           'Опис: ${warehouse['description'] ?? 'Не вказано'}',
                           style: theme.textTheme.bodyMedium,
                         ),
+                        Image.network(
+                              warehouse['img_url'] ?? 'https://via.placeholder.com/150',
+                              height: 100,
+                              width: 100,
+                              fit: BoxFit.cover,
+                            ),
                         const SizedBox(height: 16),
                         Align(
                           alignment: Alignment.centerRight,
