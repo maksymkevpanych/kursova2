@@ -18,6 +18,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
   List<dynamic> warehouses = [];
   bool isLoading = true;
   bool isAdmin = false; // Додано для перевірки адміністратора
+  final TextEditingController _searchController = TextEditingController(); // Контролер для пошуку
 
   @override
   void initState() {
@@ -33,7 +34,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
     });
   }
 
-  Future<void> loadWarehouses() async {
+  Future<void> loadWarehouses({String search = ''}) async {
     setState(() {
       isLoading = true;
     });
@@ -51,7 +52,7 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
 
     final response = await rpc.sendRequest(
       method: 'Warehouse->get_warehouses_list',
-      params: {},
+      params: {'search': search},
       sessionKey: sessionKey,
       id: 2,
     );
@@ -241,94 +242,114 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
         title: const Text('Склади', style: TextStyle(fontSize: 24)),
         centerTitle: true,
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              padding: const EdgeInsets.all(8.0),
-              itemCount: warehouses.length,
-              itemBuilder: (context, index) {
-                final warehouse = warehouses[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8.0),
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          warehouse['wh_name'] ?? 'Без назви',
-                          style: theme.textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Адреса: ${warehouse['address'] ?? 'Не вказано'}',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Опис: ${warehouse['description'] ?? 'Не вказано'}',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                        Image.network(
-                              warehouse['img_url'] ?? 'https://via.placeholder.com/150',
-                              height: 100,
-                              width: 100,
-                              fit: BoxFit.cover,
-                            ),
-                        const SizedBox(height: 16),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: PopupMenuButton<String>(
-                            onSelected: (value) {
-                              if (value == 'view') {
-                                final warehouseId = parseInt(warehouse['id']);
-                                if (warehouseId != null) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => WarehouseStockScreen(
-                                        warehouseId: warehouseId,
-                                        warehouseName: warehouse['wh_name'] ?? '',
-                                      ),
-                                    ),
-                                  );
-                                }
-                              } else if (isAdmin && value == 'edit') {
-                                editWarehouseDialog(warehouse);
-                              } else if (isAdmin && value == 'delete') {
-                                final warehouseId = parseInt(warehouse['id']);
-                                final moveStock = parseInt(warehouse['move_stock']);
-                                if (warehouseId != null) {
-                                  confirmDelete(warehouseId, moveStock);
-                                }
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'view',
-                                child: Text('Переглянути товари'),
-                              ),
-                              if (isAdmin)
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Text('Редагувати'),
-                                ),
-                              if (isAdmin)
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Text('Видалити'),
-                                ),
-                            ],
-                            icon: const Icon(Icons.more_vert),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Пошук',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () {
+                    loadWarehouses(search: _searchController.text.trim());
+                  },
+                ),
+              ),
             ),
+          ),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : warehouses.isEmpty
+                    ? const Center(child: Text('Немає складів'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(8.0),
+                        itemCount: warehouses.length,
+                        itemBuilder: (context, index) {
+                          final warehouse = warehouses[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 8.0),
+                            elevation: 4,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    warehouse['wh_name'] ?? 'Без назви',
+                                    style: theme.textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Адреса: ${warehouse['address'] ?? 'Не вказано'}',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Опис: ${warehouse['description'] ?? 'Не вказано'}',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: PopupMenuButton<String>(
+                                      onSelected: (value) {
+                                        if (value == 'view') {
+                                          final warehouseId = parseInt(warehouse['id']);
+                                          if (warehouseId != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => WarehouseStockScreen(
+                                                  warehouseId: warehouseId,
+                                                  warehouseName: warehouse['wh_name'] ?? '',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        } else if (isAdmin && value == 'edit') {
+                                          editWarehouseDialog(warehouse);
+                                        } else if (isAdmin && value == 'delete') {
+                                          final warehouseId = parseInt(warehouse['id']);
+                                          final moveStock = parseInt(warehouse['move_stock']);
+                                          if (warehouseId != null) {
+                                            confirmDelete(warehouseId, moveStock);
+                                          }
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'view',
+                                          child: Text('Переглянути товари'),
+                                        ),
+                                        if (isAdmin)
+                                          const PopupMenuItem(
+                                            value: 'edit',
+                                            child: Text('Редагувати'),
+                                          ),
+                                        if (isAdmin)
+                                          const PopupMenuItem(
+                                            value: 'delete',
+                                            child: Text('Видалити'),
+                                          ),
+                                      ],
+                                      icon: const Icon(Icons.more_vert),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: isAdmin
           ? FloatingActionButton(
               onPressed: () {

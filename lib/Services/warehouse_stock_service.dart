@@ -5,7 +5,7 @@ import 'package:kursova2/Services/rpc_service.dart';
 
 final rpc = RpcService(url: apiUrl); 
 
-Future<List<dynamic>> fetchWarehouseStock(int warehouseId) async {
+Future<List<dynamic>> fetchWarehouseStock(int warehouseId, {String search = ''}) async {
   final prefs = await SharedPreferences.getInstance();
   final sessionKey = prefs.getString('session_key');
 
@@ -13,22 +13,32 @@ Future<List<dynamic>> fetchWarehouseStock(int warehouseId) async {
     throw Exception('No session key found.');
   }
 
+  // Логування запиту
+  print('Fetching warehouse stock with params: wh_id=$warehouseId, search=$search');
+
   final response = await rpc.sendRequest(
-    method: 'Stock->get_warehouse_stock',
-    params: {'wh_id': warehouseId},
+    method: 'Stock->get_stock_list',
+    params: {
+      'wh_id': warehouseId,
+      'search': search,
+    },
     sessionKey: sessionKey,
     id: 7,
   );
 
-  if (response != null && response['result'] != null) {
-    final result = response['result'];
-    if (result is List<dynamic>) {
-      return result; // Повертаємо список товарів
-    } else {
-      throw Exception('Unexpected response format: $result');
-    }
+  // Логування відповіді сервера
+  print('Server response: $response');
+
+  if (response == null) {
+    throw Exception('Server returned null response. Please check the server logs.');
+  }
+
+  if (response['result'] != null) {
+    return response['result']['items'] ?? [];
+  } else if (response['error'] != null) {
+    throw Exception('RPC error: ${response['error']}');
   } else {
-    throw Exception('Failed to load warehouse stock: ${response?['error'] ?? 'Unknown error'}');
+    throw Exception('Unexpected server response: $response');
   }
 }
 

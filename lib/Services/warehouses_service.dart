@@ -5,7 +5,7 @@ import 'package:kursova2/constants.dart';
 
 final rpc = RpcService(url: apiUrl); 
 
-Future<List<dynamic>> fetchWarehouses() async {
+Future<List<dynamic>> fetchWarehouses({String search = ''}) async {
   final prefs = await SharedPreferences.getInstance();
   final sessionKey = prefs.getString('session_key');
 
@@ -15,13 +15,15 @@ Future<List<dynamic>> fetchWarehouses() async {
 
   final response = await rpc.sendRequest(
     method: 'Warehouse->get_warehouses_list',
-    params: {},
+    params: {
+      'search': search,
+    },
     sessionKey: sessionKey,
     id: 2,
   );
 
   if (response != null && response['result'] != null) {
-    return response['result'];
+    return response['result']['items'] ?? [];
   } else {
     throw Exception('Failed to load warehouses: ${response?['error'] ?? 'Unknown error'}');
   }

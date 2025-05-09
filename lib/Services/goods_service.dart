@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 final rpc = RpcService(url: apiUrl);
 
-Future<List<dynamic>> loadGoods() async {
+Future<List<dynamic>> loadGoods({String search = ''}) async {
   final prefs = await SharedPreferences.getInstance();
   final sessionKey = prefs.getString('session_key');
 
@@ -16,7 +16,7 @@ Future<List<dynamic>> loadGoods() async {
   final response = await rpc.sendRequest(
     method: 'Goods->get_items_list',
     params: {
-      'search': '',
+      'search': search,
       'wh_id': null,
     },
     sessionKey: sessionKey,
@@ -26,11 +26,10 @@ Future<List<dynamic>> loadGoods() async {
   if (response != null && response['result'] != null) {
     final result = response['result'];
 
-    // Перевіряємо, чи є результат мапою з ключем 'items'
     if (result is Map<String, dynamic> && result.containsKey('items')) {
       return result['items'] as List<dynamic>;
     } else if (result is List<dynamic>) {
-      return result; // Якщо результат уже список
+      return result;
     } else {
       throw Exception('Unexpected response format: $result');
     }

@@ -18,6 +18,7 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
   bool isLoading = true;
   bool isAdmin = false; // Додано для перевірки адміністратора
   List<dynamic> stockItems = [];
+  final TextEditingController _searchController = TextEditingController(); // Контролер для пошуку
 
   @override
   void initState() {
@@ -34,13 +35,13 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
     });
   }
 
-  Future<void> _loadWarehouseStock() async {
+  Future<void> _loadWarehouseStock({String search = ''}) async {
     setState(() {
       isLoading = true;
     });
 
     try {
-      final items = await fetchWarehouseStock(widget.warehouseId);
+      final items = await fetchWarehouseStock(widget.warehouseId, search: search);
       setState(() {
         stockItems = items;
         isLoading = false;
@@ -163,80 +164,93 @@ class _WarehouseStockScreenState extends State<WarehouseStockScreen> {
         title: Text('Товари складу: ${widget.warehouseName}', style: const TextStyle(fontSize: 20)),
         centerTitle: true,
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : stockItems.isEmpty
-              ? const Center(child: Text('Немає товарів на складі'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: stockItems.length,
-                  itemBuilder: (context, index) {
-                    final item = stockItems[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['name'] ?? 'Без назви',
-                              style: theme.textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Кількість: ${int.tryParse(item['qty'] ?? '0') ?? 0}',
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Опис: ${item['description'] ?? 'Не вказано'}',
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                            Container(
-                              width: MediaQuery.of(context).size.width * 0.1, // 10% ширини екрана
-                              height: MediaQuery.of(context).size.height * 0.1, // 10% висоти екрана
-                              child: Image.network(
-                                item['img_url'] ?? 'https://via.placeholder.com/150', // Резервне зображення
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(Icons.broken_image); // Іконка для помилки
-                                },
-                                fit: BoxFit.cover, // Щоб зображення заповнювало контейнер
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            if (isAdmin) // Перевірка на адміністратора
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: PopupMenuButton<String>(
-                                  onSelected: (value) {
-                                    final itemId = int.tryParse(item['item_id'] ?? '0') ?? 0;
-                                    if (value == 'receive') {
-                                      _showReceiveDialog(itemId);
-                                    } else if (value == 'withdraw') {
-                                      _showWithdrawDialog(itemId);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'receive',
-                                      child: Text('Отримати'),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'withdraw',
-                                      child: Text('Списати'),
-                                    ),
-                                  ],
-                                  icon: const Icon(Icons.more_vert),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Пошук',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () {
+                    _loadWarehouseStock(search: _searchController.text.trim());
                   },
                 ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : stockItems.isEmpty
+                    ? const Center(child: Text('Немає товарів на складі'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(8.0),
+                        itemCount: stockItems.length,
+                        itemBuilder: (context, index) {
+                          final item = stockItems[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 8.0),
+                            elevation: 4,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item['name'] ?? 'Без назви',
+                                    style: theme.textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Кількість: ${int.tryParse(item['qty'] ?? '0') ?? 0}',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Опис: ${item['description'] ?? 'Не вказано'}',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  if (isAdmin)
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: PopupMenuButton<String>(
+                                        onSelected: (value) {
+                                          final itemId = int.tryParse(item['item_id'] ?? '0') ?? 0;
+                                          if (value == 'receive') {
+                                            _showReceiveDialog(itemId);
+                                          } else if (value == 'withdraw') {
+                                            _showWithdrawDialog(itemId);
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          const PopupMenuItem(
+                                            value: 'receive',
+                                            child: Text('Отримати'),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'withdraw',
+                                            child: Text('Списати'),
+                                          ),
+                                        ],
+                                        icon: const Icon(Icons.more_vert),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         onTap: (index) {

@@ -14,6 +14,7 @@ class _GoodsScreenState extends State<GoodsScreen> {
   bool isLoading = true;
   bool isAdmin = false; // Додано для перевірки адміністратора
   List<dynamic> goods = [];
+  final TextEditingController _searchController = TextEditingController(); // Контролер для пошуку
 
   @override
   void initState() {
@@ -29,13 +30,13 @@ class _GoodsScreenState extends State<GoodsScreen> {
     });
   }
 
-  Future<void> _loadGoods() async {
+  Future<void> _loadGoods({String search = ''}) async {
     setState(() {
       isLoading = true;
     });
 
     try {
-      final loadedGoods = await loadGoods();
+      final loadedGoods = await loadGoods(search: search);
       setState(() {
         goods = loadedGoods;
         isLoading = false;
@@ -167,76 +168,95 @@ class _GoodsScreenState extends State<GoodsScreen> {
       appBar: AppBar(
         title: const Text('Товари'),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : goods.isEmpty
-              ? const Center(child: Text('Немає доступних товарів'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: goods.length,
-                  itemBuilder: (context, index) {
-                    final item = goods[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['name'] ?? 'Без назви',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Опис: ${item['description'] ?? 'Не вказано'}',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            Image.network(
-                              item['img_url'] ?? 'https://via.placeholder.com/150',
-                              height: 100,
-                              width: 100,
-                              fit: BoxFit.cover,
-                            ),
-                            const SizedBox(height: 16),
-                            if (isAdmin) // Перевірка на адміністратора
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: PopupMenuButton<String>(
-                                  onSelected: (value) {
-                                    final itemId = int.tryParse(item['id'].toString()) ?? 0;
-                                    if (value == 'delete') {
-                                      deleteItem(context, itemId, _loadGoods);
-                                    } else if (value == 'receive') {
-                                      _showReceiveItemDialog(itemId);
-                                    } else if (value == 'edit') {
-                                      _showEditItemDialog(item);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text('Редагувати'),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text('Видалити'),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'receive',
-                                      child: Text('Отримати на склад'),
-                                    ),
-                                  ],
-                                  icon: const Icon(Icons.more_vert),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Пошук',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () {
+                    _loadGoods(search: _searchController.text.trim());
                   },
                 ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : goods.isEmpty
+                    ? const Center(child: Text('Немає доступних товарів'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(8.0),
+                        itemCount: goods.length,
+                        itemBuilder: (context, index) {
+                          final item = goods[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 8.0),
+                            elevation: 4,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item['name'] ?? 'Без назви',
+                                    style: Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Опис: ${item['description'] ?? 'Не вказано'}',
+                                    style: Theme.of(context).textTheme.bodyMedium,
+                                  ),
+                                  
+                                  const SizedBox(height: 16),
+                                  if (isAdmin) // Перевірка на адміністратора
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: PopupMenuButton<String>(
+                                        onSelected: (value) {
+                                          final itemId = int.tryParse(item['id'].toString()) ?? 0;
+                                          if (value == 'delete') {
+                                            deleteItem(context, itemId, _loadGoods);
+                                          } else if (value == 'receive') {
+                                            _showReceiveItemDialog(itemId);
+                                          } else if (value == 'edit') {
+                                            _showEditItemDialog(item);
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          const PopupMenuItem(
+                                            value: 'edit',
+                                            child: Text('Редагувати'),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'delete',
+                                            child: Text('Видалити'),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'receive',
+                                            child: Text('Отримати на склад'),
+                                          ),
+                                        ],
+                                        icon: const Icon(Icons.more_vert),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: isAdmin
           ? FloatingActionButton(
               onPressed: _showCreateItemDialog,
