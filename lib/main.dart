@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'RPC Login Demo',
+      title: 'Warehouse app',
       theme: ThemeData(
         brightness: Brightness.dark, 
         primarySwatch: Colors.blueGrey,

@@ -21,15 +21,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final response = await register(username, password, _isAdmin);
 
-      print('Register response: $response'); // Логування відповіді сервера
+      print('Register response: $response'); 
 
-      // Перевіряємо вкладену структуру відповіді
+      
       if (response['result'] != null && response['result']['status'] == 'successfully created') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Користувач успішно створений')),
         );
 
-        // Переходимо на екран входу
+        
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
